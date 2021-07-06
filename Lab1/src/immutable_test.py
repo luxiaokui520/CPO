@@ -3,7 +3,7 @@ import unittest
 from hypothesis import given
 import hypothesis.strategies as st
 
-from src.hashMap_immutable import to_dict, put, HashMap, get, del_, getSize, to_list, from_list, find_iseven, \
+from src.immutable import to_dict, put, HashMap, get, del_, getSize, to_list, from_list, find_iseven, \
     filter_iseven, reduce, mempty, mconcat, iterator,map
 
 
