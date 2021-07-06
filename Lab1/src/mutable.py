@@ -1,320 +1,259 @@
-import unittest
-from typing import TypeVar, Generic
-from typing import List
-from typing import Type
-
-
 class Node:
-    def __init__(self, key, value):
+    def __init__(self, key=None, value=None, next=None):
+        '''
+        Used to initialize element nodes
+        :param key:key of element node
+        :param value:value of element node
+        :param next:chain method to solve hash collision
+        '''
         self.key = key
         self.value = value
-
-    def __repr__(self):
-        return str("{" + str(self.key) + ":" + str(self.value) + "}")
-
-    def __eq__(self, other):
-        return self.key == other.key and self.value == other.value
-
-T = TypeVar('T')
-V = TypeVar('V', str, int, float, None)
+        self.next = next
 
 
-class HashMap(Generic[T]):
-    """
-    HashMap Data Type
-    HashMap() Create a new, empty map. It returns an empty map collection.
-    put(key, val) Add a new key-value pair to the map. If the key is already in the map then replace
-                    the old value with the new value.
-    get(key) Given a key, return the value stored in the map or None otherwise.
-    del_(key) or del map[key] Delete the key-value pair from the map using a statement of the form del map[key].
-    len() Return the number of key-value pairs stored in the map.
-    in Return True for a statement of the form key in map, if the given key is in the map, False otherwise.
-    """
-
-    _empty = object()
-    _deleted = object()
+class HashMap(object):
+    empty = object()
 
     def __init__(self, dict=None):
-        """
-
-        :param dict: init_the map by a dict if dict is not null
-        """
-        self.size = 11
-        self._len = 0
-        self.kvEntry = [self._empty] * self.size
-        self._keyset = [] * self.size
-        self.index = 0
-        """init_by_dict"""
+        self.key_set = []  # used to store the elements key added to the hash map
+        self.data = [self.empty for _ in range(13)]  # Used to store element nodes
+        self.size = 13  # table size
+        # Initialization by dict
         if dict is not None:
-            self.from_dict(dict)
+            self.from_dict(self, dict)
 
-    def put(self, key: int, value: V):
+        self.len = 0
+        self.index = 0
+
+    def get_hash(self, key):
+        '''
+        Hash by key
+        :param key:element key
+        :return:hash value
+        '''
+        hash_value = key % self.size
+        return hash_value
+
+    def add(self, key, value):
         """
-
-        :param key: map key_value
-        :param value:map value
-        :return:
+           Insert key-value pairs into hash map
+           :param key: The key to insert into the hash map
+           :param value: element value
         """
-        if self._len > self.size - 2:
-            self.capacity_extension()
+        hash_value = self.get_hash(key)
+        kv_entry = Node(key, value)
 
-        initial_hash = hash_ = self.hash(key)
-
-        while True:
-            if self.kvEntry[hash_] is self._empty or self.kvEntry[hash_] is self._deleted:
-                # can assign to hash_ index
-                self.kvEntry[hash_] = Node(key, value)
-                self._keyset.append(key)
-                self._len += 1
+        if self.data[hash_value] == self.empty:
+            self.data[hash_value] = kv_entry
+            self.key_set.append(key)
+            self.len = self.len + 1
+        else:
+            p = self.data[hash_value]
+            while p.next != None:
+                if p.key is key:
+                    p.value = value
+                    return
+                p = p.next
+            if p.key is key:
+                p.value = value
                 return
-                # key already exists here, assign over
-            elif self.kvEntry[hash_].key == key:
-                self.kvEntry[hash_] = Node(key, value)
-                return
-            # the collision get a new hash_value
-            hash_ = self._rehash(hash_)
+            p.next = kv_entry
+            self.key_set.append(key)
+            self.len = self.len + 1
 
-            # if there is no place to put eg initial_hash == hash_
-            if initial_hash == hash_:
-                raise ValueError("Table is full")
+    def remove(self, key):
+        '''
+        Delete element in hash map by key
+        :param key:element key
+        :return:eoolean type for delete success or failure
+        '''
+        hash_value = self.get_hash(key)
+        if self.data[hash_value] is self.empty:
+            return False
+        elif self.data[hash_value].key is key:
+            self.data[hash_value] = self.data[hash_value].next
+            self.remove_key_set(key)
+            return True
+        p = self.data[hash_value]
+        q = self.data[hash_value].next
+        while q.next is not None:
+            if q.key is key:
+                p.next = q.next
+                self.remove_key_set(key)
+                return True
+            p = q
+            q = q.next
+        if q.key is key:
+            p.next = None
+            self.remove_key_set(key)
+            return True
+        return False
 
-    def put_entry(self, entry: Node) -> T:
-        """
-        put a k_v entry
-        :param entry: a k_v node
-        """
-        key = entry.key, value = entry.value
-        self.put(key, value)
-        return self
+    def get(self, key):
+        '''
+        Find element in hash map by key.
+        :param key:element key
+        :return:element value response to the input key
+        '''
+        dict = self.to_dict()
+        value = dict[key]
+        return value
 
-    def get(self, key: int) -> V:
-        """
-        get the storage value in map where key = key
-        :param key: key
-        :return: map value
-        """
-        initial_hash = hash_ = self.hash(key)
-        while True:
-            if self.kvEntry[hash_] is self._empty or self.kvEntry[hash_] is self._deleted:
-                # That key was never assigned
-                return None
-            elif self.kvEntry[hash_].key == key:
-                # key found
-                return self.kvEntry[hash_].value
-
-            hash_ = self._rehash(hash_)
-            if initial_hash == hash_:
-                # table is full and wrapped around
-                return None
-
-    def del_(self, key: int) -> V:
-        """
-        delete the map node in map where the key = key
-        :param key: map value
-        :return:  map value
-        """
-        initial_hash = hash_ = self.hash(key)
-        while True:
-            if self.kvEntry[hash_] is self._empty or self.kvEntry[hash_] is self._deleted:
-                # That key was never assigned
-                return None
-            elif self.kvEntry[hash_].key == key:
-                # key found, assign with deleted sentinel
-                self.kvEntry[hash_] = self._deleted
-                value = self.get(key)
-                self._keyset.remove(key)
-                self._len -= 1
-                return value
-
-            hash_ = self._rehash(hash_)
-            if initial_hash == hash_:
-                # table is full and wrapped around
-                return None
-
-    """the order is not change"""
-    """from dict"""
+    def remove_key_set(self, key):
+        '''
+        Delete key in key_set list
+        :param key:key to delete
+        '''
+        self.key_set.remove(key)
+        self.len = self.len - 1
 
     def from_dict(self, dict):
-        """
-        insert the data from the python dictionary type
-        :param dict: {key, value}
-        """
+        '''
+        add elements from dict type
+        :param dict:input dict
+        :return:
+        '''
         for k, v in dict.items():
-            self.put(int(k), v)
+            self.add(k, v)
 
     def to_dict(self):
-        """
-        convert this map to the dict {}
-        :return: {key, value}
-        """
-        kvlist = {}
-        for item in self.items():
-            kvlist[item.key] = item.value
-        return kvlist
+        '''
+        transfer hash map into dict
+        :return: resule dict
+        '''
+        kvDict = {}
+        if self.len is 0:
+            return kvDict
+        else:
+            i = 0
+            while i < self.size:
+                if self.data[i] is self.empty:
+                    i += 1
+                    continue
+                else:
+                    p = self.data[i]
+                    while p != None:
+                        kvDict[p.key] = p.value
+                        p = p.next
+                    i += 1
+        return kvDict
 
-    def from_list(self, list: List) -> T:
+    def get_size(self):
+        '''
+        Element number in hash map.
+        :return:number of element in hash map
+        '''
+        size = len(self.key_set)
+        return size
 
-        """
-        add the map value from list make the i,v(enumerate) to the k and v
-        :param list: list like [1,2,31,5]
-        """
-        if list:
-            for i, v in enumerate(list):
-                self.put(i, v)
+    def from_list(self, list):
+        '''
+        add element from list type
+        :param list:input list
+        '''
+        for k, v in enumerate(list):
+            self.add(k, v)
 
-        return self
+    def to_list(self):
+        '''
+        Transfer hash map into list type
+        :return:result list
+        '''
+        list = []
+        for key in self.key_set:
+            list.append(self.get(key))
+        return list
 
-    def to_list(self) -> List:
-        """
-        make this map to a list. just use the values in the map
-        :return: []
-        """
-        res = []
-        for key in self._keyset:
-            res.append(self.get(key))
-        return res
+    def find_iseven(self):
+        '''
+        Find element with even value in hash map.
+        :return:list with even number value
+        '''
+        list = self.to_list()
+        my_list = []
+        for value in list:
+            if type(value) is int or type(value) is float:
+                if value % 2 == 0:
+                    my_list.append(value)
+        return my_list
 
-    """
-        get the hash value
-    """
+    def filter_iseven(self):
+        '''
+        Filter element with even value in hash map.
+        :return: list with not even number value
+        '''
+        list = self.to_list()
+        for value in list:
+            if type(value) is int or type(value) is float:
+                if value % 2 == 0:
+                    list.remove(value)
+        return list
 
-    def items(self) -> List:
-        """
-        get all the items in the map
-        :return: items []
-        """
-        items = []
-        for entry in self.kvEntry:
-            if entry is self._empty or entry is self._deleted:
-                continue
-            else:
-                items.append(entry)
-        return items
+    def to_kv_entry_list(self):
+        '''
+        list to store all node in hash map
+        :return: result list
+        '''
+        list = []
+        for key in self.key_set:
+            list.append(Node(key, self.get(key)))
+        return list
 
-    def hash(self, key: int) -> int:
-        """
-        get the hash value by the method
-        :param key: key
-        :return: hash_value
-        """
-        return key % self.size
-
-    def get_hash(self, key: int):
-
-        initial_hash = hash_ = self.hash(key)
-        while True:
-            if self.kvEntry[hash_] is self._empty or self.kvEntry[hash_] is self._deleted:
-                # That key was never assigned
-                return hash_
-            elif self.kvEntry[hash_].key == key:
-                # key found
-                return hash_
-            hash_ = self._rehash(hash_)
-            if initial_hash == hash_:
-                # table is full and wrapped around
-                return None
-
-    """
-        open address  (linear probing)
-    """
-
-    def _rehash(self, old_hash: int) -> int:
-        """
-        if the hash collision happened should invoke this method
-        :param old_hash: the hash_value collision
-        :return: new hash_value
-        """
-        return (old_hash + 1) % self.size
-
-    def capacity_extension(self) -> T:
-        """
-        if the capacity is not enough extension the capacity
-        size = size * 2
-        """
-        self.kvEntry.extend([self._empty] * self.size)
-        self._keyset.extend([] * self.size)
-        self.size = 2 * self.size
-        return self
-
-    def mempty(self) -> T:
-        """
-        clear the map
-        """
-        self.kvEntry = [self._empty] * self.size
-        return self
-
-    def mconcat(self, other) -> T:
-        """
-        concat two maps to one
-        :param other:  map
-        :return: map
-        """
-        if self is None:
-            return other
-
-        if other is not None:
-            for key in other._keyset:
-                value = other.get(key)
-                self.put(key, value)
-
-        return self
-
-    def map(self, f) -> T:
-        """
-        map the map element to the f
-        :param f: the function to map
-        """
-        for key in self._keyset:
-            value = self.get(key)
-            value = f(value)
-            self.put(key, value)
-        return self
+    def map(self, f):
+        '''
+        Map element value in hash map with f
+        :param f:
+        :return:dict store all key-value pairs after map
+        '''
+        dict = {}
+        for key in self.key_set:
+            value = f(self.get(key))
+            dict[key] = value
+        return dict
 
     def reduce(self, f, initial_state):
         """
-        reduce the mapSet to one value
+        Reduce the mapSet to one value.
         :param f: the reduce method
         :param initial_state:result initial_state
         :return:final res
         """
         state = initial_state
-        for key in self._keyset:
+        for key in self.key_set:
             value = self.get(key)
             state = f(state, value)
         return state
 
+    def mempty(self):
+        """
+        The empty element in property monoid, usually called mempty.
+        """
+        # return HashMap()
+        return None
+
+    def mconcat(self, a, b):
+        """
+        Operation in property monoid.
+        :param a:first input hash map
+        :param b:second input hash map
+        :return: add element in b into a,return a
+        """
+        if a is None:
+            return b
+        if b is None:
+            return a
+        for key in b.key_set:
+            value = b.get(key)
+            a.add(key, value)
+        return a
+
     def __iter__(self):
-        return iter(self.items())
+        return iter(self.to_kv_entry_list())
 
     def __next__(self):
-        if self.index >= self._len:
+        if self.index >= self.len:
             raise StopIteration("end")
         else:
             self.index += 1
-            val = self.get(self._keyset[self.index - 1])
-            return key, val
-
-    def __getitem__(self, key):
-        return self.get(key)
-
-    def __delitem__(self, key):
-        return self.del_(key)
-
-    def __setitem__(self, key, value):
-        self.put(key, value)
-
-    def __len__(self):
-        return self._len
-
-    # {'1': 2, '2': 3, '3': 4}
-    def __repr__(self):
-        res = ""
-        for entry in self.kvEntry:
-            if entry is self._empty or entry is self._deleted:
-                continue
-            else:
-                res = res + str(entry.key) + ":" + str(entry.value) + ","
-        return "{" + res[0:-1] + "}"
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__ or self.to_dict() == other.to_dict()
+            val = self.get(self.key_set[self.index - 1])
+            return val
