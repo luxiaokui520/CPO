@@ -1,85 +1,133 @@
 import unittest
-from mutable import *
 from hypothesis import given
 import hypothesis.strategies as st
 
+from src.hashMap_mutable import *
 
-class MyTestCase(unittest.TestCase):
 
-    def test_something(self):
-        self.assertEqual(True, True)
+class TestMutableList(unittest.TestCase):
 
-    def test_put(self):
-        table = HashMap()
-        table.put(2, 3)
-        self.assertEqual(table.get(2), 3)
-        self.assertEqual(table.to_dict(), {2: 3})
-        table.put(2, 5)  # update the value to 5;
-        self.assertEqual(table.get(2), 5)
-        table.put(3, 5)  # allow have the same value;
-        self.assertEqual(table.get(3), 5)
+    def test_get_hash(self):
+        hash = HashMap()
+        self.assertEqual(hash.get_hash(5), 5)
+        self.assertEqual(hash.get_hash(24), 11)
 
-    def test_del(self):
-        table = HashMap()
-        dict = {1: 2, 2: 3, 3: 4}
-        table.from_dict(dict)
-        del table[1]
-        dict2 = {2: 3, 3: 4}
-        self.assertEqual(table.to_dict(), dict2)
+    def test_add(self):
+        hash = HashMap()
+        hash.add(2, 6)
+        self.assertEqual(hash.get(2), 6)
+        self.assertEqual(hash.to_dict(), {2: 6})
+        hash.add(4, 5)  # add  value 5;
+        self.assertEqual(hash.get(4), 5)
+        hash.add(1, 5)  # add another 5 with different key
+        self.assertEqual(hash.get(1), 5)
 
-    def test_mempty(self):
-        table = HashMap()
-        dict = {1: 2, 2: 3, 3: 4}
-        table.from_dict(dict)
-        table.mempty()
-        self.assertEqual(table.to_dict(), {})
+    def test_remove(self):
+        hash = HashMap()
+        dict1 = {1: 1, 3: 3, 5: 7}
+        hash.from_dict(dict1)
+        hash.remove(1)
+        dict2 = {3: 3, 5: 7}
+        self.assertEqual(hash.to_dict(), dict2)
 
-    def test_size(self):
-        table = HashMap()
-        self.assertEqual(len(table), 0)
-        table.put(1, 2)
-        self.assertEqual(len(table), 1)
-        table.put(2, 3)
-        self.assertEqual(len(table), 2)
+    def test_get(self):
+        hash = HashMap()
+        hash.add(1, 2)
+        hash.add(2, 3)
+        hash.add(4, 5)
+        hash.add(5, 5)
+        self.assertEqual(hash.get(4), 5)
+        self.assertEqual(hash.get(2), 3)
+        self.assertEqual(hash.get(1), 2)
+        self.assertEqual(hash.get(5), 5)
+
+    def test_remove_key_set(self):
+        hash = HashMap()
+        self.assertEqual(hash.key_set, [])
+        hash.from_dict({1: 1, 3: 3, 5: 7})
+        self.assertEqual(hash.key_set, [1, 3, 5])
+        hash.remove_key_set(1)
+        self.assertEqual(hash.key_set, [3, 5])
+
+    def test_from_dict(self):
+        hash = HashMap()
+        dict = {1: 2, 2: 4, 3: 6, 4: 8}
+        hash.from_dict(dict)
+        self.assertEqual(hash.get(4), 8)
+        self.assertEqual(hash.get(3), 6)
+
+    def test_to_dict(self):
+        hash = HashMap()
+        hash.add(1, 2)
+        hash.add(2, 3)
+        hash.add(3, 2)
+        hash.add(5, 1)
+        hash.to_dict()
+        self.assertEqual(hash.to_dict(), {1: 2, 3: 2, 5: 1, 2: 3})
+
+    def test_get_size(self):
+        hash = HashMap()
+        self.assertEqual(hash.get_size(), 0)
+        hash.add(1, 2)
+        self.assertEqual(hash.get_size(), 1)
+        hash.add(14, 2)
+        self.assertEqual(hash.get_size(), 2)
+        hash.add(1, 3)
+        self.assertEqual(hash.get_size(), 2)  # same key ,new value alter the old one
+
+
+    def test_to_list(self):
+        hash = HashMap()
+        dict = {4: 2, 3: 2, 5: 1, 1: 3}
+        hash.from_dict(dict)
+        self.assertEqual(hash.to_list(), [2, 2, 1, 3])
 
     def test_from_list(self):
         test_data = [
             [],
             ['a'],
-            ['a', 'b']
+            ['0', '11'],
+            [1, 2, 3],
+            [None]
         ]
         for e in test_data:
-            dict = HashMap()
-            dict.from_list(e)
-            self.assertEqual(dict.to_list(), e)
+            hash = HashMap()
+            hash.from_list(e)
+            self.assertEqual(hash.to_list(), e)
 
-    def test_to_list(self):
-        dict = {1: 2, 2: 3, 3: 4}
-        table = HashMap(dict)
-        self.assertEqual(table.to_list(), [2, 3, 4])
+    def test_find_iseven(self):
+        hash = HashMap()
+        hash.from_list([1, 2, 3, 4, 5, 6.0, 7.0, None, 'ss', 'dasd'])
+        self.assertEqual(hash.to_list(), [1, 2, 3, 4, 5, 6.0, 7.0, None, 'ss', 'dasd'])
+        self.assertEqual(hash.find_iseven(), [2, 4, 6.0])
 
-    def test_mconcat(self):
-        dict1 = {1: 123, 2: 333}
-        dict2 = {3: 23, 4: 323}
-        dict3 = {1: 123, 2: 333, 3: 23, 4: 323}
-        table1 = HashMap(dict1)
-        table2 = HashMap(dict2)
-        table1.mconcat(table2)
-        self.assertEqual(table1.to_dict(), dict3)
+    def test_filter_iseven(self):
+        hash = HashMap()
+        hash.from_list([1, 2, 3, 4, 5, 6.0, 7.0, None, 'ss', 'dasd'])
+        self.assertEqual(hash.to_list(), [1, 2, 3, 4, 5, 6.0, 7.0, None, 'ss', 'dasd'])
+        self.assertEqual(hash.filter_iseven(), [1, 3, 5, 7.0, None, 'ss', 'dasd'])
 
     def test_map(self):
         dict1 = {3: 23, 4: 323}
         dict2 = {3: '23', 4: '323'}
-        table1 = HashMap(dict1)
-        table1.map(str)
-        self.assertEqual(table1.to_dict(), dict2)
+        hash = HashMap()
+        hash.from_dict(dict1)
+        self.assertEqual(hash.map(str), dict2)
 
     def test_reduce(self):
-        table = HashMap()
-        self.assertEqual(table.reduce(lambda st, e: st + e, 0), 0)
+        hash = HashMap()
+        self.assertEqual(hash.reduce(lambda st, e: st + e, 0), 0)
         dict1 = {3: 23, 4: 323}
-        table1 = HashMap(dict1)
-        self.assertEqual(table1.reduce(lambda st, e: st + e, 0), 346)
+        hash1 = HashMap()
+        hash1.from_dict(dict1)
+        self.assertEqual(hash1.reduce(lambda st, e: st + e, 0), 346)
+
+    def test_hash_collision(self):
+        hash1 = HashMap()
+        hash2 = HashMap()
+        hash1.add(1, 3)
+        hash2.add(14, 3)
+        self.assertEqual(hash1.get_hash(1), hash2.get_hash(14))
 
     def test_iter(self):
         dict1 = {1: 123, 2: 333, 3: 23, 4: 323}
@@ -92,72 +140,50 @@ class MyTestCase(unittest.TestCase):
         i = iter(HashMap())
         self.assertRaises(StopIteration, lambda: next(i))
 
-    def test_hash_collision(self):
-        table1 = HashMap()
-        table2 = HashMap()
-        table1.put(1, 3)
-        table2.put(12, 3)
-        self.assertEqual(table1.get_hash(1), table2.get_hash(12))
-        # means the key of 1 and 12 have the same hash_value;
-        # put the the key that have same init_hash_value
-        table1.put(12, 4)
+    @given(a=st.lists(st.integers()))
+    def test_monoid_identity(self, a):
+        hash = HashMap()
+        hash_a = HashMap()
+        hash_a.from_list(a)
+        self.assertEqual(hash.mconcat(hash.mempty(), hash_a), hash_a)
+        self.assertEqual(hash.mconcat(hash_a, hash.mempty()), hash_a)
 
-        # now they have different hash_value, beacase the collision happen, to deal the collision the key rehash unit have not coollision
-        self.assertNotEqual(table1.get_hash(12), table2.get_hash(12))
+    @given(a=st.lists(st.integers()), b=st.lists(st.integers()), c=st.lists(st.integers()))
+    def test_monoid_associativity(self, a, b, c):
+        hash = HashMap()
+        hash_a = HashMap()
+        hash_b = HashMap()
+        hash_c = HashMap()
+        # add list to HashMap
+        hash_a.from_list(a)
+        hash_b.from_list(b)
+        hash_c.from_list(c)
+        # (a·b)·c
+        a_b = hash.mconcat(hash_a, hash_b)
+        ab_c = hash.mconcat(a_b, hash_c)
+        # a·(b·c)
+        b_c = hash.mconcat(hash_b, hash_c)
+        a_bc = hash.mconcat(hash_a, b_c)
+        self.assertEqual(ab_c, a_bc)
 
-    # we fixed the max_size because we delete the Capacity Expansion that we have implemented before
     @given(st.lists(st.integers()))
     def test_from_list_to_list_equality(self, a):
-        dict = HashMap()
-        dict.from_list(a)
-        b = dict.to_list()
+        hash = HashMap()
+        hash.from_list(a)
+        b = hash.to_list()
         self.assertEqual(a, b)
 
     @given(st.lists(st.integers()))
     def test_python_len_and_list_size_equality(self, a):
-        dict = HashMap()
-        dict.from_list(a)
-        self.assertEqual(len(dict), len(a))
-
-    @given(a=st.lists(st.integers()), b=st.lists(st.integers()))
-    def test_monoid_identity(self, a, b):
-        dict_a = HashMap()
-        dict_b = HashMap()
-        dict_a.from_list(a)
-        dict_b.from_list(b)
-        a_b = dict_a.mconcat(dict_b)  # {}
-        b_a = dict_b.mconcat(dict_a)  # {}
-        self.assertEqual(a_b, b_a)
-
-    @given(a=st.lists(st.integers()), b=st.lists(st.integers()), c=st.lists(st.integers()))
-    def test_monoid_associativity(self, a, b, c):
-        dict_a = HashMap()
-        dict_b = HashMap()
-        dict_c = HashMap()
-        dict_a.from_list(a)  # {}
-        dict_b.from_list(b)  # {}
-        dict_c.from_list(c)  # {0 0}
-        a_b = dict_a.mconcat(dict_b)  # {}
-        b_a = dict_b.mconcat(dict_a)  # {}
-        self.assertEqual(a_b, b_a)
-        c_b = dict_c.mconcat(dict_b)  # {0,0}
-        b_c = dict_b.mconcat(dict_c)  # {0,0}
-        self.assertEqual(c_b, b_c)
-        a_b__c = dict_c.mconcat(a_b)
-        a__b_c = dict_a.mconcat(b_c)
-        self.assertEqual(a_b__c, a__b_c)
+        hash = HashMap()
+        hash.from_list(a)
+        self.assertEqual(hash.get_size(), len(a))
 
     @given(st.lists(st.integers()))
-    def test_from_list2(self, a):
-        dict = HashMap()
-        dict.from_list(a)
-        self.assertEqual(dict.to_list(), a)
-
-    @given(a=st.integers(), b=st.integers())
-    def test_put2(self, a, b):
-        table = HashMap()
-        table.put(a, b)
-        self.assertEqual(table.get(a), b)
+    def test_from_list(self, a):
+        hash = HashMap()
+        hash.from_list(a)
+        self.assertEqual(hash.to_list(), a)
 
 
 if __name__ == '__main__':
